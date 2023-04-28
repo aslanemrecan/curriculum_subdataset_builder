@@ -1,49 +1,47 @@
-import torch
+# Imports
 import os
-import numpy as np
-import glob
-from torch.utils.data import Dataset, DataLoader
+import shutil
+import pandas as pd
 
+# Settings
+#stat_path = "STATS_FOR__data_Koutsoubn8_ijcnn_v7data_high_density_100k_train.csv"
+stat_path = "STATS_FOR__data_Koutsoubn8_ijcnn_v7data_single_label_set_train.csv"
+save_path = "data/"
 
-#settings
-data_path = "/data/Koutsoubn8/ijcnn_v7data"
+# Read the CSV file into a pandas dataframe
+df = pd.read_csv(stat_path)
 
-large_dir = 'data/large_boxes'
-medium_dir = 'data/medium_boxes'
-small_dir = 'data/small_boxes'
+# Split the data into three quantile bins
+bin_idx, bin_thresholds = pd.qcut(df.iloc[:, 1], q=3, labels=False, retbins=True)
 
-os.makedirs(large_dir, exist_ok=True) #creates the output directories
-os.makedirs(medium_dir, exist_ok=True)
-os.makedirs(small_dir, exist_ok=True)
+# Extract values paths of df that are small, med, lg
+small_paths = df[bin_idx == 0].iloc[:, 0]
+medium_paths = df[bin_idx == 1].iloc[:,0]
+large_paths = df[bin_idx == 2].iloc[:,0]
+# Make new folder to save in
+small_path = os.path.join(save_path, "small")
+medium_path = os.path.join(save_path, "medium")
+large_path = os.path.join(save_path, "large")
 
-#data loader
+def create_directories(dir_names, dir_paths):
+    for dir_path in dir_paths:
+        for dir_name in dir_names:
+            full_dir_path = os.path.join(dir_path, dir_name)
+            if not os.path.exists(full_dir_path):
+                os.mkdir(full_dir_path)
 
-#stats data
-def xywh2xyxy(xywh):
-    xyxy = torch.zeros_like(xywh)
-    xyxy[:, 0] = xywh[:, 0] - xywh[:, 2] / 2
-    xyxy[:, 1] = xywh[:, 1] - xywh[:, 3] / 2
-    xyxy[:, 2] = xywh[:, 0] + xywh[:, 2] / 2
-    xyxy[:, 3] = xywh[:, 1] + xywh[:, 3] / 2
-    return xyxy
+dir_names = ["labels", "images"]
+dir_paths = [small_path, medium_path, large_path]
 
-#cycle through data
-for inputs, labels, files in os.walk(data_path):
-    for file in files:
-        if file.endswith('.txt'):
-            with open(os.path.join())
-            annotation_file = os.path.join ###????
+create_directories(dir_names, dir_paths)
 
+def copy_files(paths_dict, size_path):
+    for idx, file_path in paths_dict.items():
+        filename = os.path.splitext(os.path.basename(file_path))[0]
+        shutil.copy(file_path, os.path.join(size_path, "labels", filename + ".txt"))
+        shutil.copy(file_path.replace("labels", "images").replace("txt", "jpg"), os.path.join(size_path, "images", filename + ".jpg"))
 
-
-
-
-#split&saves
-large_boxes = bounding_boxes[areas > large_thresh]
-medium_boxes = bounding_boxes[(areas <= large_thresh) & (areas > small_thresh)]
-small_boxes = bounding_boxes[areas <= small_thresh]
-
-
-# Copy the image to the appropriate output directory
-output_filepath = os.path.join(output_dir, filename)
-os.system(f"cp {filepath} {output_filepath}")
+def copy_all_files(small_paths, medium_paths, large_paths, small_path, medium_path, large_path):
+    copy_files(small_paths, small_path)
+    copy_files(medium_paths, medium_path)
+    copy_files(large_paths, large_path)
